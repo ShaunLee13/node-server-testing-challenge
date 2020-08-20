@@ -1,10 +1,10 @@
 const supertest = require('supertest')
 
 const server = require('./server')
+const db = require('../data/dbConfig')
 
 const trueMatch = {
-    hello:'there',
-    general:'kenobi'
+    message:'hello there'
 }
 
 const falseMatch = {
@@ -12,6 +12,7 @@ const falseMatch = {
 }
 
 describe('server', () => {
+
     describe('get /', () => {
         it('returns a status code 200', async () => {
             const res = await supertest(server).get('/')
@@ -28,6 +29,9 @@ describe('server', () => {
     })
 
     describe('post /testing', () => {
+        beforeEach( async () => {
+            await db('test').truncate()
+        })
         it('rejects a request that does not match', async () => {
             const res = await supertest(server)
                 .post('/testing')
@@ -36,39 +40,28 @@ describe('server', () => {
             expect(res.status).toBe(400)
             expect(res.body).toMatchObject({addition:'denied'})
         })
-        it('posts a response if correct', async () => {
+        it('should add a message', async () => {
             const res = await supertest(server)
                 .post('/testing')
                 .send(trueMatch)
 
-            expect(res.status).toBe(201)
-            expect(res.type).toMatch(/json/i)
+            const messages = await db("test");
+
+            expect(messages).toHaveLength(1);
+
         })
     })
 
-    describe('get /testing', () => {
+    describe('delete /testing/1', () => {
         it('returns a status code 200', async () => {
-            const res = await supertest(server).get('/testing')
+            const res = await supertest(server).delete('/testing/1')
 
             expect(res.status).toBe(200)
         })
-        it('returns an object', async () => {
-            const res = await supertest(server).get('/testing')
-
-            expect(res.body).toMatchObject({rawr:'X3',nyan:'cat'})
-        })
-    })
-
-    describe('delete /testing', () => {
-        it('returns a status code 200', async () => {
-            const res = await supertest(server).delete('/testing')
-
-            expect(res.status).toBe(204)
-        })
         it('returns an empty response', async () => {
-            const res = await supertest(server).delete('/testing')
+            const res = await supertest(server).delete('/testing/1')
 
-            expect(res.body).toMatchObject({})
+            expect(res.body).toMatchObject({message:'deleted'})
         })
     })
 })
